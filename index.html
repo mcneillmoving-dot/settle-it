@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Settle It</title>
-<meta name="description" content="Two sides. One judge. No appeals. Get a funny AI verdict on your everyday arguments.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
@@ -100,10 +99,10 @@ button:disabled{opacity:.6;cursor:wait}
 <script>
 (function(){
 var JUDGES=[
-{id:"captain",name:"Capt. Grumbles",tag:"Grumpy old sea captain"},
-{id:"grandma",name:"Judge Honeybelle",tag:"Southern grandma"},
-{id:"bard",name:"The Bard of Bickering",tag:"Shakespearean drama"},
-{id:"robot",name:"Unit 7-Gavel",tag:"Overly serious robot"}
+{id:"captain",name:"Capt. Grumbles",tag:"Grumpy old sea captain",style:"a gruff, salty old sea captain who has seen every kind of nonsense and speaks in nautical metaphors"},
+{id:"grandma",name:"Judge Honeybelle",tag:"Southern grandma",style:"a sweet-but-sharp Southern grandmother who delivers devastating verdicts with endless 'bless your heart' energy"},
+{id:"bard",name:"The Bard of Bickering",tag:"Shakespearean drama",style:"a dramatic Shakespearean playwright who rules in witty, theatrical, old-timey English"},
+{id:"robot",name:"Unit 7-Gavel",tag:"Overly serious robot",style:"an extremely literal, overly formal robot that quantifies everything with made-up statistics and probabilities"}
 ];
 var EXAMPLE={na:"Dave",sa:"I loaded the dishwasher the right way, bowls on top and plates facing the center. She re-did the whole thing and told me I 'stack like a raccoon'. I did it for free!",nb:"Karen",sb:"He put a greasy pan in with the wine glasses. Everything came out cloudy. I re-loaded it to save the glasses and I'm the villain somehow."};
 var $=function(s){return document.querySelector(s)};
@@ -132,55 +131,3 @@ function renderBoard(){
   list.forEach(function(r){var li=document.createElement("li");li.textContent=r[0]+": "+r[1]+(r[1]===1?" win":" wins");ol.appendChild(li)});
   box.appendChild(ol);
 }
-renderBoard();
-
-function say(t){$("#msg").textContent=t||""}
-
-$("#ex").addEventListener("click",function(){
-  $("#na").value=EXAMPLE.na;$("#sa").value=EXAMPLE.sa;$("#nb").value=EXAMPLE.nb;$("#sb").value=EXAMPLE.sb;say("");
-});
-$("#again").addEventListener("click",function(){
-  ["#na","#sa","#nb","#sb"].forEach(function(s){$(s).value=""});
-  $("#verdict").classList.remove("show");say("");window.scrollTo({top:0,behavior:"smooth"});
-});
-$("#copy").addEventListener("click",function(){
-  var b=$("#copy");
-  try{navigator.clipboard.writeText(last).then(function(){b.textContent="Copied"},function(){b.textContent="Copy blocked"})}
-  catch(e){b.textContent="Copy blocked"}
-  setTimeout(function(){b.textContent="Copy verdict"},1800);
-});
-
-$("#go").addEventListener("click",async function(){
-  var a=$("#na").value.trim()||"Side A",b=$("#nb").value.trim()||"Side B";
-  var sa=$("#sa").value.trim(),sb=$("#sb").value.trim();
-  if(sa.length<10||sb.length<10){say("Both sides need to tell their story first (a sentence or two is enough).");return}
-  var j=JUDGES.filter(function(x){return x.id===picked})[0];
-  var btn=$("#go");btn.disabled=true;btn.textContent="The judge is deliberating...";say("");
-  try{
-    var resp=await fetch("/api/verdict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({judge:j.id,a:a,b:b,sa:sa,sb:sb})});
-    if(resp.status===429)throw {code:"rate_limited"};
-    if(!resp.ok)throw new Error("fail");
-    var v=await resp.json();
-    var head,win=null;
-    if(v.serious){head="Pausing the bit"}
-    else if(v.winner==="A"){head=a+" wins";win=a}
-    else if(v.winner==="B"){head=b+" wins";win=b}
-    else{head="It's a tie"}
-    $("#vvs").textContent=a+" vs. "+b;
-    $("#vhead").textContent=head;
-    $("#vrule").textContent=v.ruling||"";
-    var s=$("#vsent");s.textContent=v.sentence?"Sentence: "+v.sentence:"";s.style.display=v.sentence?"block":"none";
-    $("#vwho").textContent="Presiding: "+j.name;
-    last="SETTLE IT VERDICT\n"+a+" vs. "+b+"\n"+head+"\n"+(v.ruling||"")+(v.sentence?"\nSentence: "+v.sentence:"")+"\nJudge: "+j.name;
-    var vd=$("#verdict");vd.classList.remove("show");void vd.offsetWidth;vd.classList.add("show");
-    if(win){session[win]=(session[win]||0)+1;setWins(session);renderBoard()}
-    vd.scrollIntoView({behavior:"smooth",block:"nearest"});
-  }catch(e){
-    if(e&&e.code==="rate_limited")say("The court is overloaded. Wait a few seconds and try again.");
-    else say("The judge mumbled something unreadable. Try again.");
-  }finally{btn.disabled=false;btn.textContent="Hear the verdict"}
-});
-})();
-</script>
-</body>
-  </html>
