@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Settle It</title>
+<meta name="description" content="Two sides. One judge. No appeals. Get a funny AI verdict on your everyday arguments.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFE9A8;--ink:#14313B;--paper:#FFFFFF;--accent:#E4572E;--accent-ink:#FFFFFF;--muted:#48646D;--soft:#FFF6D6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E2A33;--ink:#F6EFD9;--paper:#163C48;--accent:#FF7A4D;--accent-ink:#14210F;--muted:#9DB9C1;--soft:#1C4855;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E2A33;--ink:#F6EFD9;--paper:#163C48;--accent:#FF7A4D;--accent-ink:#14210F;--muted:#9DB9C1;--soft:#1C4855;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.5}
+main{max-width:860px;margin:0 auto;padding:28px 18px 56px}
+h1{font-size:clamp(2.6rem,9vw,4.4rem);line-height:.95;margin:0 0 8px;font-weight:800;letter-spacing:-.03em}
+.sub{margin:0 0 26px;color:var(--muted);font-size:1.05rem}
+h2{font-size:1.05rem;font-weight:800;margin:0 0 10px}
+.judges{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:26px}
+.judges label{display:block;cursor:pointer}
+.judges input{position:absolute;opacity:0;pointer-events:none}
+.chip{display:block;height:100%;padding:12px 14px;background:var(--paper);border:3px solid var(--ink);border-radius:14px}
+.chip b{display:block;font-weight:800}.chip span{font-size:.88rem;color:var(--muted)}
+.judges input:checked+.chip{background:var(--accent);color:var(--accent-ink);box-shadow:5px 5px 0 var(--ink)}
+.judges input:checked+.chip span{color:inherit}
+.judges input:focus-visible+.chip{outline:3px dashed var(--ink);outline-offset:3px}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.sides{grid-template-columns:1fr}}
+.side{background:var(--paper);border:3px solid var(--ink);border-radius:14px;padding:14px;box-shadow:5px 5px 0 var(--ink)}
+input[type=text],textarea{width:100%;font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--ink);border-radius:10px;padding:9px 11px}
+textarea{min-height:140px;resize:vertical;margin-top:8px}
+input[type=text]:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px dashed var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
+button{font:inherit;font-weight:800;cursor:pointer;border:3px solid var(--ink);border-radius:999px;padding:12px 24px;background:var(--accent);color:var(--accent-ink);box-shadow:4px 4px 0 var(--ink)}
+button.alt{background:var(--paper);color:var(--ink)}
+button:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+button:disabled{opacity:.6;cursor:wait}
+#msg{margin-top:14px;color:var(--accent);font-weight:600;min-height:1.4em}
+#verdict{display:none;margin-top:30px;background:var(--paper);border:3px solid var(--ink);border-radius:18px;padding:22px;box-shadow:8px 8px 0 var(--ink)}
+#verdict.show{display:block;animation:slam .35s ease-out}
+@keyframes slam{from{transform:scale(1.06) rotate(-1deg);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){#verdict.show{animation:none}}
+.vs{color:var(--muted);font-size:.95rem;margin:0}
+#vhead{font-size:clamp(1.8rem,6vw,2.7rem);line-height:1.05;font-weight:800;margin:6px 0 12px;letter-spacing:-.02em}
+#vrule{margin:0 0 14px}
+.sentence{background:var(--soft);border-left:6px solid var(--accent);padding:10px 14px;border-radius:0 10px 10px 0;margin:0 0 6px}
+.who{color:var(--muted);font-size:.9rem;margin:10px 0 0}
+#board{margin-top:34px}
+#board ol{margin:0;padding-left:1.3em}
+.empty{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Settle It</h1>
+  <p class="sub">Two sides. One judge. No appeals. Pass the phone, tell your side, and hear the verdict.</p>
+
+  <h2>Pick your judge</h2>
+  <div class="judges" id="judges" role="radiogroup" aria-label="Judge"></div>
+
+  <div class="sides">
+    <div class="side">
+      <h2>Side A</h2>
+      <input type="text" id="na" placeholder="Name (e.g. Dave)" maxlength="30" aria-label="Side A name">
+      <textarea id="sa" placeholder="Your side of the story..." maxlength="600" aria-label="Side A story"></textarea>
+    </div>
+    <div class="side">
+      <h2>Side B</h2>
+      <input type="text" id="nb" placeholder="Name (e.g. Karen)" maxlength="30" aria-label="Side B name">
+      <textarea id="sb" placeholder="Your side of the story..." maxlength="600" aria-label="Side B story"></textarea>
+    </div>
+  </div>
+
+  <div class="row">
+    <button id="go">Hear the verdict</button>
+    <button id="ex" class="alt" type="button">Try an example</button>
+  </div>
+  <div id="msg" role="status" aria-live="polite"></div>
+
+  <section id="verdict" aria-live="polite">
+    <p class="vs" id="vvs"></p>
+    <div id="vhead"></div>
+    <p id="vrule"></p>
+    <p class="sentence" id="vsent"></p>
+    <p class="who" id="vwho"></p>
+    <div class="row">
+      <button id="copy" class="alt" type="button">Copy verdict</button>
+      <button id="again" class="alt" type="button">New case</button>
+    </div>
+  </section>
+
+  <section id="board">
+    <h2>Wins on this device</h2>
+    <div id="boardlist" class="empty">No verdicts yet. Be the first to lose.</div>
+  </section>
+</main>
+<script>
+(function(){
+var JUDGES=[
+{id:"captain",name:"Capt. Grumbles",tag:"Grumpy old sea captain"},
+{id:"grandma",name:"Judge Honeybelle",tag:"Southern grandma"},
+{id:"bard",name:"The Bard of Bickering",tag:"Shakespearean drama"},
+{id:"robot",name:"Unit 7-Gavel",tag:"Overly serious robot"}
+];
+var EXAMPLE={na:"Dave",sa:"I loaded the dishwasher the right way, bowls on top and plates facing the center. She re-did the whole thing and told me I 'stack like a raccoon'. I did it for free!",nb:"Karen",sb:"He put a greasy pan in with the wine glasses. Everything came out cloudy. I re-loaded it to save the glasses and I'm the villain somehow."};
+var $=function(s){return document.querySelector(s)};
+var picked=JUDGES[0].id,last="";
+
+var jbox=$("#judges");
+JUDGES.forEach(function(j,i){
+  var l=document.createElement("label");
+  var inp=document.createElement("input");inp.type="radio";inp.name="judge";inp.value=j.id;if(i===0)inp.checked=true;
+  inp.addEventListener("change",function(){picked=j.id});
+  var c=document.createElement("span");c.className="chip";
+  var b=document.createElement("b");b.textContent=j.name;
+  var t=document.createElement("span");t.textContent=j.tag;
+  c.appendChild(b);c.appendChild(t);l.appendChild(inp);l.appendChild(c);jbox.appendChild(l);
+});
+
+function getWins(){try{return JSON.parse(localStorage.getItem("settleit:wins")||"{}")}catch(e){return {}}}
+function setWins(w){try{localStorage.setItem("settleit:wins",JSON.stringify(w))}catch(e){}}
+var session=getWins();
+function renderBoard(){
+  var list=Object.keys(session).map(function(k){return [k,session[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,8);
+  var box=$("#boardlist");box.textContent="";
+  if(!list.length){box.className="empty";box.textContent="No verdicts yet. Be the first to lose.";return}
+  box.className="";
+  var ol=document.createElement("ol");
+  list.forEach(function(r){var li=document.createElement("li");li.textContent=r[0]+": "+r[1]+(r[1]===1?" win":" wins");ol.appendChild(li)});
+  box.appendChild(ol);
+}
+renderBoard();
+
+function say(t){$("#msg").textContent=t||""}
+
+$("#ex").addEventListener("click",function(){
+  $("#na").value=EXAMPLE.na;$("#sa").value=EXAMPLE.sa;$("#nb").value=EXAMPLE.nb;$("#sb").value=EXAMPLE.sb;say("");
+});
+$("#again").addEventListener("click",function(){
+  ["#na","#sa","#nb","#sb"].forEach(function(s){$(s).value=""});
+  $("#verdict").classList.remove("show");say("");window.scrollTo({top:0,behavior:"smooth"});
+});
+$("#copy").addEventListener("click",function(){
+  var b=$("#copy");
+  try{navigator.clipboard.writeText(last).then(function(){b.textContent="Copied"},function(){b.textContent="Copy blocked"})}
+  catch(e){b.textContent="Copy blocked"}
+  setTimeout(function(){b.textContent="Copy verdict"},1800);
+});
+
+$("#go").addEventListener("click",async function(){
+  var a=$("#na").value.trim()||"Side A",b=$("#nb").value.trim()||"Side B";
+  var sa=$("#sa").value.trim(),sb=$("#sb").value.trim();
+  if(sa.length<10||sb.length<10){say("Both sides need to tell their story first (a sentence or two is enough).");return}
+  var j=JUDGES.filter(function(x){return x.id===picked})[0];
+  var btn=$("#go");btn.disabled=true;btn.textContent="The judge is deliberating...";say("");
+  try{
+    var resp=await fetch("/api/verdict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({judge:j.id,a:a,b:b,sa:sa,sb:sb})});
+    if(resp.status===429)throw {code:"rate_limited"};
+    if(!resp.ok)throw new Error("fail");
+    var v=await resp.json();
+    var head,win=null;
+    if(v.serious){head="Pausing the bit"}
+    else if(v.winner==="A"){head=a+" wins";win=a}
+    else if(v.winner==="B"){head=b+" wins";win=b}
+    else{head="It's a tie"}
+    $("#vvs").textContent=a+" vs. "+b;
+    $("#vhead").textContent=head;
+    $("#vrule").textContent=v.ruling||"";
+    var s=$("#vsent");s.textContent=v.sentence?"Sentence: "+v.sentence:"";s.style.display=v.sentence?"block":"none";
+    $("#vwho").textContent="Presiding: "+j.name;
+    last="SETTLE IT VERDICT\n"+a+" vs. "+b+"\n"+head+"\n"+(v.ruling||"")+(v.sentence?"\nSentence: "+v.sentence:"")+"\nJudge: "+j.name;
+    var vd=$("#verdict");vd.classList.remove("show");void vd.offsetWidth;vd.classList.add("show");
+    if(win){session[win]=(session[win]||0)+1;setWins(session);renderBoard()}
+    vd.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }catch(e){
+    if(e&&e.code==="rate_limited")say("The court is overloaded. Wait a few seconds and try again.");
+    else say("The judge mumbled something unreadable. Try again.");
+  }finally{btn.disabled=false;btn.textContent="Hear the verdict"}
+});
+})();
+</script>
+</body>
+  </html>
